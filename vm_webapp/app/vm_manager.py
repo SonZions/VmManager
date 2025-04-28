@@ -12,12 +12,18 @@ VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
 USERNAME = "Simon"
 
-def run_command(command):
+def run_command(command, show_output=True):
+    print(f"⚙️  Führe aus: {command}")
     try:
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        if show_output:
+            print(f"✅ Erfolg: {result.stdout.strip()}")
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(e.stderr.strip())
+        print(f"❌ Fehler beim Befehl: {command}")
+        print(f"Fehlerausgabe:\n{e.stderr.strip()}")
+        raise RuntimeError(f"Fehler beim Ausführen von Befehl: {command}\n{e.stderr.strip()}")
+
 
 def get_my_ip():
     return run_command("curl -s https://ifconfig.me")
