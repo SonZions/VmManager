@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Azure VM Control</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+        button { font-size: 1.2em; margin: 10px; padding: 10px 20px; }
+    </style>
+</head>
+<body>
+    <h1>Azure VM Manager</h1>
+
+    {% if public_ip %}
+        <p style="color:green;">✅ VM läuft: {{ public_ip }}</p>
+        <p>Verbinde: <strong>mstsc /v:{{ public_ip }}</strong></p>
+    {% else %}
+        <p style="color:red;">⛔ VM ist gestoppt</p>
+    {% endif %}
+
+    <form action="/start" method="post">
+        <button type="submit">🔵 VM starten</button>
+    </form>
+
+    <form action="/stop" method="post">
+        <button type="submit">🔴 VM stoppen</button>
+    </form>
+</body>
+</html>
