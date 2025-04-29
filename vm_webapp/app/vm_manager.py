@@ -38,17 +38,47 @@ def get_public_ip():
         return None
 
 def create_vm():
-    open(LOG_FILE, "w").close()  # Leere Logdatei
+    open(LOG_FILE, "w").close()  # Logdatei leeren
     password = os.getenv("AZURE_VM_PASSWORD")
     if not password:
         log("❌ Fehler: AZURE_VM_PASSWORD nicht gesetzt")
         return
 
-    run_command(f"az network nsg create --resource-group {RESOURCE_GROUP} --name {NSG_NAME}")
-    run_command(f"""az network nsg rule create --resource-group {RESOURCE_GROUP} --nsg-name {NSG_NAME} --name allow-rdp --priority 1000 --direction Inbound --access Allow --protocol Tcp --destination-port-range 3389 --source-address-prefixes $(curl -s ifconfig.me) --destination-address-prefix '*'""")
-    run_command(f"az network public-ip create --resource-group {RESOURCE_GROUP} --name {IP_NAME} --sku Basic")
-    run_command(f"""az network nic create --resource-group {RESOURCE_GROUP} --name {NIC_NAME} --vnet-name {VNET_NAME} --subnet {SUBNET_NAME} --network-security-group {NSG_NAME} --public-ip-address {IP_NAME}""")
-    run_command(f"""az vm create --resource-group {RESOURCE_GROUP} --name {VM_NAME} --nics {NIC_NAME} --image MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest --admin-username {USERNAME} --admin-password {password} --size Standard_B2s --os-disk-delete-option Delete --license-type Windows_Server""")
+    try:
+        run_command(f"az network nsg create --resource-group {RESOURCE_GROUP} --name {NSG_NAME}")
+        run_command(f"""az network nsg rule create \
+            --resource-group {RESOURCE_GROUP} \
+            --nsg-name {NSG_NAME} \
+            --name allow-rdp \
+            --priority 1000 \
+            --direction Inbound \
+            --access Allow \
+            --protocol Tcp \
+            --destination-port-range 3389 \
+            --source-address-prefixes $(curl -s ifconfig.me) \
+            --destination-address-prefix '*'""")
+        run_command(f"az network public-ip create --resource-group {RESOURCE_GROUP} --name {IP_NAME} --sku Basic")
+        run_command(f"""az network nic create \
+            --resource-group {RESOURCE_GROUP} \
+            --name {NIC_NAME} \
+            --vnet-name {VNET_NAME} \
+            --subnet {SUBNET_NAME} \
+            --network-security-group {NSG_NAME} \
+            --public-ip-address {IP_NAME}""")
+        run_command(f"""az vm create \
+            --resource-group {RESOURCE_GROUP} \
+            --name {VM_NAME} \
+            --nics {NIC_NAME} \
+            --image MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest \
+            --admin-username {USERNAME} \
+            --admin-password {password} \
+            --size Standard_B2s \
+            --os-disk-delete-option Delete \
+            --license-type Windows_Server""")
+
+        log("✅ VM erfolgreich erstellt.")
+    except Exception as e:
+        log(f"❌ Erstellung abgebrochen: {str(e)}")
 
 def delete_vm():
     open(LOG_FILE, "w").close()
