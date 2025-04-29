@@ -33,9 +33,15 @@ def get_my_ip():
 
 def get_public_ip():
     try:
-        return run_command(f"az vm show --resource-group {RESOURCE_GROUP} --name {VM_NAME} --show-details --query publicIps --output tsv")
-    except:
-        return None
+        return run_command(
+            f"az vm show --resource-group {RESOURCE_GROUP} --name {VM_NAME} "
+            f"--show-details --query publicIps --output tsv --api-version 2023-09-01"
+        )
+    except RuntimeError as e:
+        if "ResourceNotFound" in str(e):
+            log("i️  VM existiert nicht – keine IP verfügbar.")
+            return None
+        raise  # alle anderen Fehler weiterreichen
 
 def create_vm():
     open(LOG_FILE, "w").close()  # Leere Logdatei
