@@ -2,7 +2,7 @@ import subprocess
 import os
 import time
 
-RESOURCE_GROUP = "rg-simon"
+RESOURCE_GROUP = "rg-loxconfig"
 LOCATION = "germanywestcentral"
 VM_NAME = "vmLoxConfig"
 IP_NAME = f"ip-{VM_NAME}"
@@ -38,13 +38,25 @@ def get_public_ip():
         return None
 
 def create_vm():
-    open(LOG_FILE, "w").close()  # Logdatei leeren
+    open(LOG_FILE, "w").close()  # Leere Logdatei
     password = os.getenv("AZURE_VM_PASSWORD")
     if not password:
         log("❌ Fehler: AZURE_VM_PASSWORD nicht gesetzt")
         return
 
     try:
+        # Resource Group erstellen (idempotent)
+        run_command(f"az group create --name {RESOURCE_GROUP} --location germanywestcentral")
+
+        # VNet + Subnet erstellen (idempotent)
+        run_command(f"""az network vnet create \
+            --resource-group {RESOURCE_GROUP} \
+            --name {VNET_NAME} \
+            --address-prefix 10.0.0.0/16 \
+            --subnet-name {SUBNET_NAME} \
+            --subnet-prefix 10.0.0.0/24""")
+
+        # NSG + Regel
         run_command(f"az network nsg create --resource-group {RESOURCE_GROUP} --name {NSG_NAME}")
         run_command(f"""az network nsg rule create \
             --resource-group {RESOURCE_GROUP} \
@@ -57,7 +69,11 @@ def create_vm():
             --destination-port-range 3389 \
             --source-address-prefixes $(curl -s ifconfig.me) \
             --destination-address-prefix '*'""")
+
+        # Public IP
         run_command(f"az network public-ip create --resource-group {RESOURCE_GROUP} --name {IP_NAME} --sku Basic")
+
+        # NIC
         run_command(f"""az network nic create \
             --resource-group {RESOURCE_GROUP} \
             --name {NIC_NAME} \
@@ -65,6 +81,8 @@ def create_vm():
             --subnet {SUBNET_NAME} \
             --network-security-group {NSG_NAME} \
             --public-ip-address {IP_NAME}""")
+
+        # VM
         run_command(f"""az vm create \
             --resource-group {RESOURCE_GROUP} \
             --name {VM_NAME} \
