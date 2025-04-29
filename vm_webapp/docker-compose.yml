@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  vm_webapp:
+    build: .
+    container_name: vm_webapp
+    ports:
+      - "8000:8000"
+    environment:
+      - AZURE_VM_PASSWORD=fahRib-wunwo4-janfij
+    volumes:
+      - azure_login:/root/.azure         # <-- speichert Login dauerhaft
+      - ./app/current.log:/app/current.log  # <-- Logs direkt lesbar (optional)
+    restart: unless-stopped
+
+volumes:
+  azure_login:
