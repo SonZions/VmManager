@@ -4,22 +4,13 @@
     <meta charset="UTF-8">
     <title>Azure VM Manager</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding-top: 50px; }
+        body { font-family: Arial, sans-serif; text-align: center; padding-top: 30px; }
         button { font-size: 1.2em; margin: 10px; padding: 10px 20px; }
-        .message { color: green; font-weight: bold; margin: 20px; }
-        .error { color: red; font-weight: bold; margin: 20px; }
+        pre { text-align: left; background: #eee; padding: 20px; overflow-x: auto; max-width: 80%; margin: auto; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <h1>Azure VM Manager</h1>
-
-    {% if message %}
-        <div class="message">{{ message }}</div>
-    {% endif %}
-
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
 
     {% if public_ip %}
         <p style="color:green;">✅ VM läuft: {{ public_ip }}</p>
@@ -35,5 +26,20 @@
     <form action="/stop" method="post">
         <button type="submit">🔴 VM stoppen</button>
     </form>
+
+    <h2>Logs</h2>
+    <pre id="logbox">Lade...</pre>
+
+    <script>
+        function reloadLogs() {
+            fetch("/logs")
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("logbox").innerText = data;
+                });
+        }
+        setInterval(reloadLogs, 1500);
+        reloadLogs();
+    </script>
 </body>
 </html>
