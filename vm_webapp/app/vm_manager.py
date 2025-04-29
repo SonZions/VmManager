@@ -65,16 +65,11 @@ def create_vm():
         --resource-group {RESOURCE_GROUP} \
         --name {VM_NAME} \
         --nics {NIC_NAME} \
-        --image MicrosoftWindowsServer:WindowsServer:2022-datacenter-azure-edition-hotpatch:latest \
+        --image MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest \
         --admin-username {USERNAME} \
         --admin-password {password} \
         --size Standard_B2s \
-        --zone 1 \
-        --security-type TrustedLaunch \
-        --enable-vtpm true \
-        --enable-secure-boot true \
         --os-disk-delete-option Delete \
-        --boot-diagnostics-storage '' \
         --license-type Windows_Server""")
     return get_public_ip()
 
