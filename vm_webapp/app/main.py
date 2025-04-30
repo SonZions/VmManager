@@ -31,3 +31,8 @@ async def stop_vm():
     thread = threading.Thread(target=vm_manager.delete_vm)
     thread.start()
     return await index(Request({"type": "http"}))
+    
+@app.post("/clear-log")
+async def clear_log():
+    open("current.log", "w").close()
+    return await index(Request({"type": "http"}))

@@ -99,6 +99,13 @@ def create_vm():
             --size Standard_B2s \
             --os-disk-delete-option Delete \
             --license-type Windows_Server""")
+            
+        run_command(f"""az vm extension set \
+					  --resource-group {RESOURCE_GROUP} \
+					  --vm-name {VM_NAME} \
+					  --name CustomScriptExtension \
+					  --publisher Microsoft.Compute \
+					  --settings '{{"fileUris": ["https://raw.githubusercontent.com/SonZions/loxone-install/main/install-loxone.ps1"], "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install-loxone.ps1"}}'""")
 
         log("✅ VM erfolgreich erstellt.")
     except Exception as e:
