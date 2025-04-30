@@ -38,8 +38,9 @@ def get_public_ip():
             f"--name {VM_NAME} --show-details --query publicIps --output tsv"
         )
     except RuntimeError as e:
-        if "ResourceNotFound" in str(e) or "not found" in str(e).lower():
-            log("ℹ️  VM existiert nicht – keine IP verfügbar.")
+        error_str = str(e)
+        if any(msg in error_str for msg in ["ResourceNotFound", "ResourceGroupNotFound", "could not be found"]):
+            log("ℹ️  VM oder Resource Group existiert nicht – keine IP verfügbar.")
             return None
         log(f"❌ Fehler beim Abrufen der VM-IP:\n{e}")
         return None
