@@ -34,14 +34,16 @@ def get_my_ip():
 def get_public_ip():
     try:
         return run_command(
-            f"az vm show --resource-group {RESOURCE_GROUP} --name {VM_NAME} "
-            f"--show-details --query publicIps --output tsv --api-version 2023-09-01"
+            f"az vm show --resource-group {RESOURCE_GROUP} "
+            f"--name {VM_NAME} --show-details --query publicIps --output tsv"
         )
     except RuntimeError as e:
-        if "ResourceNotFound" in str(e):
-            log("i️  VM existiert nicht – keine IP verfügbar.")
+        if "ResourceNotFound" in str(e) or "not found" in str(e).lower():
+            log("ℹ️  VM existiert nicht – keine IP verfügbar.")
             return None
-        raise  # alle anderen Fehler weiterreichen
+        log(f"❌ Fehler beim Abrufen der VM-IP:\n{e}")
+        return None
+
 
 def create_vm():
     open(LOG_FILE, "w").close()  # Leere Logdatei
@@ -101,11 +103,11 @@ def create_vm():
             --license-type Windows_Server""")
             
         run_command(f"""az vm extension set \
-					  --resource-group {RESOURCE_GROUP} \
-					  --vm-name {VM_NAME} \
-					  --name CustomScriptExtension \
-					  --publisher Microsoft.Compute \
-					  --settings '{{"fileUris": ["https://raw.githubusercontent.com/SonZions/loxone-install/main/install-loxone.ps1"], "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install-loxone.ps1"}}'""")
+            --resource-group {RESOURCE_GROUP} \
+            --vm-name {VM_NAME} \
+            --name CustomScriptExtension \
+            --publisher Microsoft.Compute \
+            --settings '{{"fileUris": ["https://raw.githubusercontent.com/SonZions/loxone-install/main/install-loxone.ps1"], "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install-loxone.ps1"}}'""")
 
         log("✅ VM erfolgreich erstellt.")
     except Exception as e:
