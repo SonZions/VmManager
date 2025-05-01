@@ -12,7 +12,7 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -
 
 # App-Ordner vorbereiten
 WORKDIR /app
-COPY requirements.txt .
+COPY app/requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY app .
