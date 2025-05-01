@@ -1,22 +1,21 @@
-FROM python:3.11-slim
+FROM ubuntu:22.04
 
-# System-Abhängigkeiten & Azure CLI
-
-# Azure CLI 2.57.0 installieren (stabil & getestet)
-# Statt Version erzwingen → immer aktuellste nehmen
+# Systempakete & Python
 RUN apt-get update && apt-get install -y \
-    curl ca-certificates gnupg lsb-release apt-transport-https \
- && curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/microsoft.gpg \
- && echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list \
+    python3 python3-pip curl ca-certificates gnupg lsb-release apt-transport-https
+
+# Azure CLI installieren
+RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg \
+ && echo "deb [arch=arm64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list \
  && apt-get update && apt-get install -y azure-cli \
  && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-
-# App vorbereiten
+# App-Ordner vorbereiten
 WORKDIR /app
-COPY app/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app .
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+COPY . .
 
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port 8000"]
