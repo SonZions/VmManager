@@ -23,6 +23,18 @@ Diese Anwendung stellt eine Weboberfläche bereit, um eine vorbereitete Azure-V
 
 ---
 
+## 🔐 Azure VM Passwort sicher setzen
+
+Das Administratorpasswort der VM wird über eine Umgebungsvariable `VM_PASSWORD` übergeben. Setze sie vor dem Starten der Anwendung einmalig im Terminal:
+
+```bash
+export VM_PASSWORD='DeinSicheresPasswort123!'
+```
+
+> Hinweis: Wenn du `uvicorn` per `systemd` oder in einem Container ausführst, muss diese Variable dort ebenfalls gesetzt werden – z. B. über `Environment=` im Servicefile oder `.env` im Docker-Compose.
+
+---
+
 ## 🚀 Schnellstart (lokal)
 
 ```bash
@@ -31,6 +43,7 @@ cd vmmanager/vm_webapp
 python3 -m venv my_venv
 source my_venv/bin/activate
 pip install -r requirements.txt
+export VM_PASSWORD='DeinSicheresPasswort123!'
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -41,6 +54,7 @@ Dann im Browser öffnen: [http://localhost:8000](http://localhost:8000)
 ## 🐳 Docker-Start
 
 ```bash
+export VM_PASSWORD='DeinSicheresPasswort123!'
 docker compose up -d
 ```
 
@@ -60,13 +74,21 @@ sudo systemctl enable uvicorn
 sudo systemctl start uvicorn
 ```
 
+Beispiel für `uvicorn.service` mit Passwort:
+
+```ini
+[Service]
+Environment=VM_PASSWORD=DeinSicheresPasswort123!
+ExecStart=/usr/bin/env bash -c 'source /pfad/zu/my_venv/bin/activate && uvicorn app.main:app --host 0.0.0.0 --port 8000'
+```
+
 ---
 
 ## 🧠 Sicherheitshinweis
 
-- Das Admin-Passwort der VM ist fest hinterlegt – ändere es bei Bedarf!
+- Das Admin-Passwort der VM wird über eine Umgebungsvariable gesetzt.
 - Zugriff per RDP ist standardmäßig nur von deiner öffentlichen IP erlaubt.
-- Die VM wird nach der Konfiguration empfohlen zu löschen.
+- Die VM sollte nach der Konfiguration gelöscht werden.
 
 ---
 
@@ -120,3 +142,47 @@ A: Per `az vm extension set` wird ein PowerShell-Skript ausgeführt, das den ak
 
 Projektidee von Simon.  
 Powered by FastAPI, Azure CLI und Loxone.
+
+
+---
+
+## 🗂️ Umgebungsvariablen via `.env` Datei (empfohlen)
+
+Alternativ zur direkten `Environment=`-Angabe im Servicefile kannst du dein Passwort auch aus einer `.env` Datei laden.
+
+### ✅ Beispiel `.env` Datei
+
+Speichere in `/home/loxberry/workspace/VmManager/vm_webapp/.env`:
+
+```env
+VM_PASSWORD=DeinSicheresPasswort123!
+```
+
+### ✅ Angepasstes `uvicorn.service` mit `.env` Unterstützung
+
+```ini
+[Unit]
+Description=Uvicorn Loxone WebGUI
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/loxberry/workspace/VmManager/vm_webapp
+EnvironmentFile=/home/loxberry/workspace/VmManager/vm_webapp/.env
+ExecStart=/home/loxberry/workspace/VmManager/vm_webapp/my_venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+> Wichtig: Stelle sicher, dass dein Python-Code `from dotenv import load_dotenv` und `load_dotenv()` verwendet, um diese Datei zu laden.
+
+---
+
+Nach Änderungen:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart uvicorn
+```
