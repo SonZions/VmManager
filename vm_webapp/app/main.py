@@ -6,7 +6,7 @@ import threading
 import os
 
 app = FastAPI()
-templates = Jinja2Templates(directory="app\templates")
+templates = Jinja2Templates(directory="app/templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
