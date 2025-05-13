@@ -26,18 +26,18 @@ Diese Anwendung stellt eine Weboberfläche bereit, um eine vorbereitete Azure-V
 
 ## 🔐 Azure VM Passwort sicher setzen
 
-Das Administratorpasswort wird über die Umgebungsvariable `VM_PASSWORD` bereitgestellt.
+Das Administratorpasswort wird über die Umgebungsvariable `AZURE_VM_PASSWORD` bereitgestellt.
 
 ### Variante 1 – Temporär im Terminal
 
 ```bash
-export VM_PASSWORD='DeinSicheresPasswort123!'
+export AZURE_VM_PASSWORD='DeinSicheresPasswort123!'
 ```
 
 ### Variante 2 – `.env` Datei im Projektverzeichnis
 
 ```env
-VM_PASSWORD=DeinSicheresPasswort123!
+AZURE_VM_PASSWORD=DeinSicheresPasswort123!
 ```
 
 Im Python-Code muss dann folgendes eingebunden sein:
@@ -57,7 +57,7 @@ cd vmmanager/vm_webapp
 python3 -m venv my_venv
 source my_venv/bin/activate
 pip install -r requirements.txt
-export VM_PASSWORD='DeinSicheresPasswort123!'
+export AZURE_VM_PASSWORD='DeinSicheresPasswort123!'
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
@@ -68,7 +68,7 @@ Dann im Browser öffnen: [http://localhost:8000](http://localhost:8000)
 ## 🐳 Docker-Start
 
 ```bash
-export VM_PASSWORD='DeinSicheresPasswort123!'
+export AZURE_VM_PASSWORD='DeinSicheresPasswort123!'
 docker compose up -d
 ```
 
@@ -137,7 +137,6 @@ vm_webapp/
 
 ---
 
-## ❤️ Danke
 
-Projektidee von Simon.  
+
 Powered by FastAPI, Azure CLI und Loxone.
