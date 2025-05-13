@@ -4,8 +4,6 @@ from fastapi.templating import Jinja2Templates
 from app import vm_manager
 import threading
 import os
-from dotenv import load_dotenv
-load_dotenv()
 
 
 app = FastAPI()
