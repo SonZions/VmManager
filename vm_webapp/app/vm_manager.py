@@ -46,6 +46,16 @@ def get_public_ip():
         return None
 
 
+def list_resources():
+    cmd = [
+        "az", "resource", "list",
+        "--resource-group", RESOURCE_GROUP,
+        "--query", "[].{name:name,type:type,location:location}",
+        "--output", "json"
+    ]
+    return run_command(cmd, json_output=True)
+
+
 def create_vm():
     open(LOG_FILE, "w").close()  # Leere Logdatei
     password = os.getenv("AZURE_VM_PASSWORD")

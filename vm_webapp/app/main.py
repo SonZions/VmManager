@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from app import vm_manager
 import threading
@@ -39,3 +39,11 @@ async def stop_vm():
 async def clear_log():
     open("current.log", "w").close()
     return await index(Request({"type": "http"}))
+    
+@app.get("/resources")
+def resources():
+    try:
+        resources = vm_manager.list_resources()
+        return JSONResponse(content=resources)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
