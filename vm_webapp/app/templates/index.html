@@ -18,6 +18,21 @@
     {% else %}
         <p style="color:red;">⛔ VM ist gestoppt</p>
     {% endif %}
+    
+     <h3>Aktive Ressourcen</h3>
+ <div id="resources">Lade...</div>
+
+ <script>
+ fetch("/resources")
+     .then(response => response.json())
+     .then(data => {
+         const list = data.map(r => <li><b>${r.name}</b> (${r.type}) – ${r.location}</li>`).join("");
+         document.getElementById("resources").innerHTML = `<ul>${list}</ul>`;
+     })
+     .catch(err => {
+         document.getElementById("resources").innerHTML = "Fehler beim Laden der Ressourcen.";
+     });
+ </script>
 
     <form action="/start" method="post">
         <button type="submit">🔵 VM starten</button>
