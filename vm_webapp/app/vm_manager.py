@@ -10,7 +10,7 @@ NIC_NAME = f"nic-{VM_NAME}"
 NSG_NAME = f"nsg-{VM_NAME}"
 VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
-USERNAME = "Simon"
+USERNAME = "admin"
 LOG_FILE = "current.log"
 
 def log(line):
