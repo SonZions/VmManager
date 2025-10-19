@@ -1,133 +1,135 @@
-# Azure VM Web Manager
+# 🖥️ VmManager
 
-Eine kleine Webanwendung, um über den Raspberry Pi (oder beliebigen anderen Server) per Web-Oberfläche eine Azure VM zu erstellen, zu starten, zu stoppen und zu überwachen.
-
-- Backend: FastAPI (Python)
-- Frontend: Einfaches HTML/CSS + Live-Reload Logs
-- Deployment: Docker + Docker Compose
-- Azure CLI im Container integriert
+Ein kleines, aber feines Web-Tool zum Verwalten von Azure Virtual Machines – direkt aus dem Browser.  
+Gebaut, weil die Azure-Portalseite zwar schön blau ist, aber einfach zu viele Klicks braucht.  
 
 ---
 
-## 🚀 Funktionen
+## 🚀 Was das Ding macht
 
-- Vollautomatische Erstellung:
-  - Resource Group
-  - VNet + Subnet
-  - Network Security Group (NSG) + RDP-Öffnung nur für die eigene IP
-  - Public IP und NIC
-  - Windows Server 2019 VM
-- Live-Logs der Azure-Kommandos im Browser
-- Volle Steuerung via einfacher Weboberfläche
-- Keine manuelle Azure-Konfiguration notwendig
-- Automatische Speicherung des Azure-Logins über Docker Volume
+VmManager ist ein leichtgewichtiges Web-Frontend (FastAPI + HTML/CSS), das dir per Knopfdruck eine vollständige Windows-VM in Azure anlegt – inklusive allem Drumherum:
+
+- Ressourcengruppe  
+- Virtual Network + Subnetz  
+- Network Security Group (mit RDP nur für die eigene IP)  
+- Public IP + Netzwerkkarte  
+- Windows Server 2019 Datacenter VM  
+
+Du kannst:
+- Eine VM starten, stoppen, löschen  
+- Live-Logs der Aktionen direkt im Browser sehen  
+- Das Ganze lokal oder im Container laufen lassen  
 
 ---
 
-## ⚙️ Setup Anleitung
+## 🧩 Architektur in zwei Sätzen
 
-### Voraussetzungen
+Das Backend ist eine kleine [FastAPI](https://fastapi.tiangolo.com/)-App, die intern mit der **Azure CLI** spricht.  
+Das Frontend ist minimalistisch – HTML, etwas CSS, und fertig. Keine Framework-Schlacht.
 
-- Raspberry Pi (oder Linux-Server) mit Docker und Docker Compose
-- Azure Account (mit Berechtigung VMs zu erstellen)
-- Python 3.11 (nur falls lokal getestet, sonst alles im Container)
+---
 
-### Docker & Compose installieren
+## 🧰 Voraussetzungen
 
+Bevor du loslegst, brauchst du:
+
+- Einen Azure-Account  
+- Eine lokale Installation der **Azure CLI** (bzw. im Container enthalten)  
+- Docker & Docker Compose (optional, aber empfohlen)  
+- Einen Service Principal oder dein eigenes Login via `az login`  
+
+---
+
+## 🏗️ Installation & Start
+
+### Variante 1: Docker Compose (empfohlen)
 ```bash
-sudo apt update
-sudo apt install docker docker-compose-plugin
-sudo usermod -aG docker $USER
-reboot
+git clone https://github.com/SonZions/VmManager.git
+cd VmManager
+docker-compose up --build
 ```
+Danach ist die App erreichbar unter  
+👉 [http://localhost:8000](http://localhost:8000)
 
----
-
-### Projekt starten
-
-1. Projekt auf den Raspberry kopieren
-2. Docker-Container bauen und starten:
-
+### Variante 2: Direkt mit Python
 ```bash
-docker compose up --build -d
+pip install -r requirements.txt
+uvicorn main:app --reload
 ```
 
-3. Einmalig im Container Azure-Login durchführen:
+---
 
+## 🔑 Azure Login
+
+Falls du nicht per Service Principal arbeitest:
 ```bash
-docker exec -it vm_webapp az login --use-device-code
+az login
+```
+
+Für einen Service Principal:
+```bash
+az login --service-principal   -u <client_id> -p <client_secret>   --tenant <tenant_id>
+```
+
+Danach kann VmManager mit deinem Azure-Konto arbeiten.
+
+---
+
+## 🖥️ Nutzung
+
+1. Öffne das Web-Interface.  
+2. Gib Namen, Ressourcengruppe, Größe usw. an.  
+3. Klick auf **"Create VM"**.  
+4. Schau dir live im Browser an, wie Azure deine VM zusammenbaut.  
+
+Wenn’s durch ist, bekommst du:
+- IP-Adresse  
+- Benutzername/Passwort  
+- und kannst direkt per RDP drauf.
+
+---
+
+## ⚙️ Logging & Troubleshooting
+
+Alle Azure-Befehle werden live gestreamt und im Terminal angezeigt.  
+Falls was schiefläuft, schau ins Log – meist ist’s nur ein falscher Parameter oder eine Berechtigungssache.
+
+---
+
+## ⚠️ Sicherheitshinweis
+
+Das hier ist **kein Produktionssystem**.  
+- Keine Authentifizierung  
+- Kein HTTPS  
+- Kein Multi-User  
+
+Kurz gesagt: **nicht ins Internet stellen**, sondern im Heimnetz oder Lab-Setup nutzen.
+
+---
+
+## 📂 Struktur
+
+```
+VmManager/
+├── main.py           # FastAPI Backend
+├── templates/
+│   └── index.html    # Web-Frontend
+├── static/           # CSS etc.
+├── docker-compose.yml
+└── requirements.txt
 ```
 
 ---
 
-### Weboberfläche öffnen
+## ❤️ Motivation
 
-Im Browser aufrufen:
-
-```plaintext
-http://<IP_deines_Raspberry>:8000
-```
+Manchmal will man einfach schnell ’ne VM bauen –  
+ohne sich durch zehn Azure-Tabs zu klicken.  
+VmManager macht genau das: schnell, simpel, und mit ein bisschen Stil.  
 
 ---
 
-## 🛡 Sicherheitshinweise
+## ☕ Lizenz
 
-**VM Sicherheit:**
-- RDP ist **nur von deiner aktuellen öffentlichen IP** freigegeben.
-- Passwort wird per Umgebungsvariable gesetzt (`AZURE_VM_PASSWORD`) – stark wählen!
-- Kein zusätzlicher Schutz durch Bastion oder VPN – bitte bewusst einsetzen.
-
-**Server Sicherheit:**
-- Die Web-Oberfläche ist **nicht passwortgeschützt** → im Heimnetz unkritisch, im öffentlichen Netz unbedingt absichern!
-- Der Container speichert Azure-Login-Tokens unter `/root/.azure` → Volume `azure_login` nur für vertrauenswürdige Umgebungen!
-
----
-
-## 📚 Struktur
-
-| Datei/Ordner | Funktion |
-|:---|:---|
-| `app/main.py` | FastAPI Webserver |
-| `app/vm_manager.py` | Azure Ressourcenmanagement (VM, NSG, IP, etc.) |
-| `app/templates/index.html` | Web UI |
-| `Dockerfile` | Container-Bauplan |
-| `docker-compose.yml` | Startkonfiguration inkl. Volumes |
-| `current.log` | Laufendes Logfile der letzten Aktion |
-
----
-
-## 🧠 VM Konfiguration
-
-| Eigenschaft | Einstellung |
-|:---|:---|
-| OS | Windows Server 2019 Datacenter |
-| Größe | Standard_B2s |
-| Lizenz | Azure-integriert (`license-type Windows_Server`) |
-| Sicherheit | Trusted Launch deaktiviert (für Geschwindigkeit) |
-| Zugriff | Nur RDP, nur von aktueller IP |
-
----
-
-## ⚠ Bekannte Einschränkungen
-
-- Kein Nutzer-/Rollenkonzept für die Web-App
-- Kein HTTPS (nur HTTP im Heimnetzwerk)
-- Keine automatische Deaktivierung oder Laufzeitbegrenzung der VM
-- Keine Email/Telegram-Benachrichtigungen (kann ergänzt werden)
-
----
-
-## ✨ Mögliche Erweiterungen
-
-- Passwortschutz oder Login für Weboberfläche
-- Statusanzeige (Running / Deallocated)
-- Zeitgesteuertes Starten/Stoppen
-- Telegram- oder E-Mail-Benachrichtigungen
-- SSL/TLS mit Let's Encrypt
-- Mehrere VMs verwalten
-
----
-
-## 💬 Support
-
-Bei Fragen, Feedback oder Verbesserungen gerne melden!
+MIT – Mach draus, was du willst.  
+Wenn du’s kaputtmachst, war’s trotzdem deine VM 😎
