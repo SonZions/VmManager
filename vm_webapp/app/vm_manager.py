@@ -1,5 +1,6 @@
-import subprocess
+import json
 import os
+import subprocess
 import time
 
 RESOURCE_GROUP = "rg-loxconfig"
@@ -12,35 +13,55 @@ VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
 USERNAME = "admin"
 LOG_FILE = "current.log"
+PUBLIC_IP_CACHE_TTL_SECONDS = 15
+_public_ip_cache = {"value": None, "timestamp": 0.0}
 
 def log(line):
     with open(LOG_FILE, "a") as f:
         f.write(line + "\n")
     print(line)
 
-def run_command(command):
+def run_command(command, json_output=False):
     log(f"⚙️  Befehl: {command}")
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(command, shell=isinstance(command, str), check=True, capture_output=True, text=True)
         log(f"✅ Erfolg:\n{result.stdout.strip()}")
-        return result.stdout.strip()
+        output = result.stdout.strip()
+        if json_output:
+            return json.loads(output or "[]")
+        return output
     except subprocess.CalledProcessError as e:
         log(f"❌ Fehler:\n{e.stderr.strip()}")
         raise RuntimeError(e.stderr.strip())
 
 def get_my_ip():
-    return run_command("curl -s https://ifconfig.me")
+    for url in ["https://api.ipify.org", "https://ifconfig.me", "https://ipv4.icanhazip.com"]:
+        try:
+            ip = run_command(f"curl -4 -s --max-time 5 {url}").strip()
+            if ip:
+                return ip
+        except RuntimeError:
+            continue
+    raise RuntimeError("Konnte keine öffentliche IP ermitteln.")
 
 def get_public_ip():
+    now = time.time()
+    if now - _public_ip_cache["timestamp"] < PUBLIC_IP_CACHE_TTL_SECONDS:
+        return _public_ip_cache["value"]
+
     try:
-        return run_command(
+        value = run_command(
             f"az vm show --resource-group {RESOURCE_GROUP} "
             f"--name {VM_NAME} --show-details --query publicIps --output tsv"
         )
+        value = value or None
+        _public_ip_cache.update({"value": value, "timestamp": now})
+        return value
     except RuntimeError as e:
         error_str = str(e)
         if any(msg in error_str for msg in ["ResourceNotFound", "ResourceGroupNotFound", "could not be found"]):
             log("ℹ️  VM oder Resource Group existiert nicht – keine IP verfügbar.")
+            _public_ip_cache.update({"value": None, "timestamp": now})
             return None
         log(f"❌ Fehler beim Abrufen der VM-IP:\n{e}")
         return None
@@ -75,6 +96,9 @@ def create_vm():
             --subnet-name {SUBNET_NAME} \
             --subnet-prefix 10.0.0.0/24""")
 
+        current_ip = get_my_ip()
+        source_prefix = f"{current_ip}/32"
+
         # NSG + Regel
         run_command(f"az network nsg create --resource-group {RESOURCE_GROUP} --name {NSG_NAME}")
         run_command(f"""az network nsg rule create \
@@ -86,7 +110,7 @@ def create_vm():
             --access Allow \
             --protocol Tcp \
             --destination-port-range 3389 \
-            --source-address-prefixes $(curl -s ifconfig.me) \
+            --source-address-prefixes {source_prefix} \
             --destination-address-prefix '*'""")
 
         # Public IP
@@ -120,6 +144,8 @@ def create_vm():
             --publisher Microsoft.Compute \
             --settings '{{"fileUris": ["https://raw.githubusercontent.com/SonZions/loxone-install/main/install-loxone.ps1"], "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install-loxone.ps1"}}'""")
 
+        _public_ip_cache.update({"value": None, "timestamp": 0.0})
+
         log("✅ VM erfolgreich erstellt.")
     except Exception as e:
         log(f"❌ Erstellung abgebrochen: {str(e)}")
@@ -131,3 +157,4 @@ def delete_vm():
     run_command(f"az network nic delete --resource-group {RESOURCE_GROUP} --name {NIC_NAME}")
     run_command(f"az network public-ip delete --resource-group {RESOURCE_GROUP} --name {IP_NAME}")
     run_command(f"az network nsg delete --resource-group {RESOURCE_GROUP} --name {NSG_NAME}")
+    _public_ip_cache.update({"value": None, "timestamp": time.time()})
