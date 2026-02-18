@@ -26,7 +26,7 @@
  fetch("/resources")
      .then(response => response.json())
      .then(data => {
-         const list = data.map(r => <li><b>${r.name}</b> (${r.type}) – ${r.location}</li>`).join("");
+         const list = data.map(r => `<li><b>${r.name}</b> (${r.type}) – ${r.location}</li>`).join("");
          document.getElementById("resources").innerHTML = `<ul>${list}</ul>`;
      })
      .catch(err => {
