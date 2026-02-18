@@ -1,18 +1,19 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, JSONResponse
+from fastapi import BackgroundTasks, FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from app import vm_manager
-import threading
 import os
 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="app/templates")
 
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     public_ip = vm_manager.get_public_ip()
     return templates.TemplateResponse("index.html", {"request": request, "public_ip": public_ip})
+
 
 @app.get("/logs", response_class=PlainTextResponse)
 async def logs():
@@ -21,23 +22,25 @@ async def logs():
             return f.read()
     return ""
 
+
 @app.post("/start")
-async def start_vm():
-    thread = threading.Thread(target=vm_manager.create_vm)
-    thread.start()
-    return await index(Request({"type": "http"}))
+async def start_vm(background_tasks: BackgroundTasks):
+    background_tasks.add_task(vm_manager.create_vm)
+    return RedirectResponse(url="/", status_code=303)
+
 
 @app.post("/stop")
-async def stop_vm():
-    thread = threading.Thread(target=vm_manager.delete_vm)
-    thread.start()
-    return await index(Request({"type": "http"}))
-    
+async def stop_vm(background_tasks: BackgroundTasks):
+    background_tasks.add_task(vm_manager.delete_vm)
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/clear-log")
 async def clear_log():
     open("current.log", "w").close()
-    return await index(Request({"type": "http"}))
-    
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.get("/resources")
 def resources():
     try:
