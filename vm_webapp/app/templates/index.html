@@ -18,8 +18,14 @@
     {% else %}
         <p style="color:red;">⛔ VM ist gestoppt</p>
     {% endif %}
-    
-     <h3>Aktive Ressourcen</h3>
+
+    {% if vm_username and vm_password %}
+        <p><strong>VM Credentials:</strong> {{ vm_username }} / {{ vm_password }}</p>
+    {% elif vm_username %}
+        <p><strong>VM Username:</strong> {{ vm_username }} (Passwort wird über AZURE_VM_PASSWORD gesetzt)</p>
+    {% endif %}
+
+         <h3>Aktive Ressourcen</h3>
  <div id="resources">Lade...</div>
 
  <script>
