@@ -17,7 +17,7 @@ async def index(request: Request):
         {
             "request": request,
             "public_ip": public_ip,
-            "vm_username": vm_manager.USERNAME,
+            "vm_username": vm_manager.get_vm_username(),
             "vm_password": os.getenv("AZURE_VM_PASSWORD"),
         },
     )
