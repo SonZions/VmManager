@@ -11,10 +11,31 @@ NIC_NAME = f"nic-{VM_NAME}"
 NSG_NAME = f"nsg-{VM_NAME}"
 VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
-USERNAME = "admin"
+DEFAULT_USERNAME = "loxadmin"
+DISALLOWED_WINDOWS_USERNAMES = {
+    "admin",
+    "administrator",
+    "root",
+    "guest",
+}
 LOG_FILE = "current.log"
 PUBLIC_IP_CACHE_TTL_SECONDS = 15
 _public_ip_cache = {"value": None, "timestamp": 0.0}
+
+
+def get_vm_username():
+    configured_username = os.getenv("AZURE_VM_USERNAME", DEFAULT_USERNAME).strip()
+    if not configured_username:
+        configured_username = DEFAULT_USERNAME
+
+    if configured_username.lower() in DISALLOWED_WINDOWS_USERNAMES:
+        log(
+            "⚠️  Der konfigurierte Benutzername ist für Windows-VMs nicht zulässig. "
+            f"Falle auf '{DEFAULT_USERNAME}' zurück."
+        )
+        return DEFAULT_USERNAME
+
+    return configured_username
 
 def log(line):
     with open(LOG_FILE, "a") as f:
@@ -131,7 +152,7 @@ def create_vm():
             --name {VM_NAME} \
             --nics {NIC_NAME} \
             --image MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest \
-            --admin-username {USERNAME} \
+            --admin-username {get_vm_username()} \
             --admin-password {password} \
             --size Standard_B2s \
             --os-disk-delete-option Delete \
