@@ -49,6 +49,12 @@ async def clear_log():
     return RedirectResponse(url="/", status_code=303)
 
 
+@app.get("/status")
+async def status():
+    public_ip = vm_manager.get_public_ip()
+    return JSONResponse(content={"public_ip": public_ip})
+
+
 @app.get("/resources")
 def resources():
     try:
