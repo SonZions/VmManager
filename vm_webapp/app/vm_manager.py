@@ -12,6 +12,7 @@ NSG_NAME = f"nsg-{VM_NAME}"
 VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
 DEFAULT_USERNAME = "loxadmin"
+DEFAULT_LOXONE_VERSION = "16011106"
 DISALLOWED_WINDOWS_USERNAMES = {
     "admin",
     "administrator",
@@ -158,12 +159,40 @@ def create_vm():
             --os-disk-delete-option Delete \
             --license-type Windows_Server""")
             
-        run_command(f"""az vm extension set \
-            --resource-group {RESOURCE_GROUP} \
-            --vm-name {VM_NAME} \
-            --name CustomScriptExtension \
-            --publisher Microsoft.Compute \
-            --settings '{{"fileUris": ["https://raw.githubusercontent.com/SonZions/loxone-install/main/install-loxone.ps1"], "commandToExecute": "powershell -ExecutionPolicy Unrestricted -File install-loxone.ps1"}}'""")
+        loxone_version = os.getenv("LOXONE_VERSION", DEFAULT_LOXONE_VERSION).strip()
+        if not loxone_version:
+            loxone_version = DEFAULT_LOXONE_VERSION
+        log(f"ℹ️  Loxone Config Version: {loxone_version}")
+
+        ps_script = (
+            f"$ErrorActionPreference = 'Stop'; "
+            f"$version = '{loxone_version}'; "
+            f"$zipUrl = 'https://updatefiles.loxone.com/LoxConfig/LoxoneConfigSetup_' + $version + '.zip'; "
+            f"$zipPath = 'C:\\LoxoneConfig.zip'; "
+            f"$extractPath = 'C:\\LoxoneInstall'; "
+            f"Write-Host ('Lade Loxone Config v' + $version + ' von ' + $zipUrl); "
+            f"Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath; "
+            f"Write-Host 'Entpacke ZIP...'; "
+            f"Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force; "
+            f"$installer = Get-ChildItem -Path $extractPath -Filter 'LoxoneConfigSetup*.exe' -Recurse | Select-Object -First 1; "
+            f"if (-not $installer) {{ throw 'Installer EXE nicht gefunden in ZIP' }}; "
+            f"Write-Host ('Starte Installation von ' + $installer.FullName); "
+            f"Start-Process -FilePath $installer.FullName -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait; "
+            f"Write-Host 'Loxone Config installiert.'"
+        )
+
+        settings = json.dumps({
+            "commandToExecute": f"powershell -ExecutionPolicy Unrestricted -Command \"{ps_script}\""
+        })
+
+        run_command([
+            "az", "vm", "extension", "set",
+            "--resource-group", RESOURCE_GROUP,
+            "--vm-name", VM_NAME,
+            "--name", "CustomScriptExtension",
+            "--publisher", "Microsoft.Compute",
+            "--settings", settings
+        ])
 
         _public_ip_cache.update({"value": None, "timestamp": 0.0})
 
