@@ -12,17 +12,19 @@
 <body>
     <h1>Azure VM Manager</h1>
 
+    <div id="vm-status">
     {% if public_ip %}
-        <p style="color:green;">✅ VM läuft: {{ public_ip }}</p>
+        <p style="color:green;">&#x2705; VM l&auml;uft: {{ public_ip }}</p>
         <p>Verbinde: <strong>mstsc /v:{{ public_ip }}</strong></p>
     {% else %}
-        <p style="color:red;">⛔ VM ist gestoppt</p>
+        <p style="color:red;">&#x26D4; VM ist gestoppt</p>
     {% endif %}
+    </div>
 
     {% if vm_username and vm_password %}
         <p><strong>VM Credentials:</strong> {{ vm_username }} / {{ vm_password }}</p>
     {% elif vm_username %}
-        <p><strong>VM Username:</strong> {{ vm_username }} (Passwort wird über AZURE_VM_PASSWORD gesetzt)</p>
+        <p><strong>VM Username:</strong> {{ vm_username }} (Passwort wird &uuml;ber AZURE_VM_PASSWORD gesetzt)</p>
     {% endif %}
 
          <h3>Aktive Ressourcen</h3>
@@ -41,15 +43,15 @@
  </script>
 
     <form action="/start" method="post">
-        <button type="submit">🔵 VM starten</button>
+        <button type="submit">&#x1F535; VM starten</button>
     </form>
 
     <form action="/stop" method="post">
-        <button type="submit">🔴 VM stoppen</button>
+        <button type="submit">&#x1F534; VM stoppen</button>
     </form>
-    
+
     <form action="/clear-log" method="post">
-        <button type="submit">🧹 Log löschen</button>
+        <button type="submit">&#x1F9F9; Log l&ouml;schen</button>
     </form>
 
     <h2>Logs</h2>
@@ -65,6 +67,21 @@
         }
         setInterval(reloadLogs, 1500);
         reloadLogs();
+
+        function reloadStatus() {
+            fetch("/status")
+                .then(response => response.json())
+                .then(data => {
+                    const el = document.getElementById("vm-status");
+                    if (data.public_ip) {
+                        el.innerHTML = '<p style="color:green;">&#x2705; VM l&auml;uft: ' + data.public_ip + '</p>'
+                            + '<p>Verbinde: <strong>mstsc /v:' + data.public_ip + '</strong></p>';
+                    } else {
+                        el.innerHTML = '<p style="color:red;">&#x26D4; VM ist gestoppt</p>';
+                    }
+                });
+        }
+        setInterval(reloadStatus, 5000);
     </script>
 </body>
 </html>
