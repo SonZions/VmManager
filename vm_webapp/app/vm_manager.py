@@ -152,7 +152,7 @@ def create_vm():
             --resource-group {RESOURCE_GROUP} \
             --name {VM_NAME} \
             --nics {NIC_NAME} \
-            --image MicrosoftWindowsServer:WindowsServer:2019-datacenter:latest \
+            --image MicrosoftWindowsServer:WindowsServer:2025-datacenter:latest \
             --admin-username {get_vm_username()} \
             --admin-password {password} \
             --size Standard_B2s \
