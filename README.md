@@ -13,7 +13,7 @@ VmManager ist ein leichtgewichtiges Web-Frontend (FastAPI + HTML/CSS), das dir p
 - Virtual Network + Subnetz  
 - Network Security Group (mit RDP nur für die eigene IP)  
 - Public IP + Netzwerkkarte  
-- Windows Server 2019 Datacenter VM  
+- Windows Server 2025 Datacenter VM  
 
 Du kannst:
 - Eine VM starten, stoppen, löschen  
