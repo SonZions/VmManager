@@ -91,6 +91,34 @@ Wenn’s durch ist, bekommst du:
 
 ## ⚙️ Logging & Troubleshooting
 
+### Loxone Config-Version
+
+Neue VMs installieren standardmäßig das aktuelle **Release** aus dem offiziellen
+Loxone Updatefeed. Am 10.09.2026 ist das **17.2.08.28** (`17020828`).
+VmManager verwendet dafür das gemeinsame Skript aus
+[SonZions/loxone-install](https://github.com/SonZions/loxone-install), dessen Code
+über eine feste Commit-URL geladen wird. Die Config-Version wird bei der Installation
+ermittelt; Beta-Versionen werden nicht ausgewählt.
+
+`LOXONE_VERSION=latest` ist der Standard, auch bei leerem Wert. Ein konkreter Build
+kann weiterhin über `LOXONE_VERSION=17020828` festgelegt werden. Docker Compose
+übernimmt den Wert aus der Umgebung oder der `.env` im Compose-Verzeichnis.
+Eine noch vorhandene Einstellung `LOXONE_VERSION=16011106` muss entfernt oder
+auf `latest` geändert werden, damit sie das aktuelle Release nicht überschreibt.
+
+Nach der Änderung muss der laufende VmManager den aktualisierten Code und die neue
+Umgebung laden. Eine bereits laufende Windows-VM wird dadurch nicht automatisch
+aktualisiert. Dort kann das
+[Installationsskript](https://github.com/SonZions/loxone-install#loxone-config-installieren)
+in einer PowerShell als Administrator ausgeführt werden. Die VM muss dafür nicht
+gelöscht werden. Miniserver-Firmware wird durch dieses Skript nicht aktualisiert.
+
+Die Python-Tests laufen ohne Azure-Zugriff:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 Alle Azure-Befehle werden live gestreamt und im Terminal angezeigt.  
 Falls was schiefläuft, schau ins Log – meist ist’s nur ein falscher Parameter oder eine Berechtigungssache.
 
