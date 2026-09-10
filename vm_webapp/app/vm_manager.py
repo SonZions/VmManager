@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import time
 
@@ -12,7 +13,12 @@ NSG_NAME = f"nsg-{VM_NAME}"
 VNET_NAME = "myVM-vnet"
 SUBNET_NAME = "default"
 DEFAULT_USERNAME = "loxadmin"
-DEFAULT_LOXONE_VERSION = "16011106"
+DEFAULT_LOXONE_VERSION = "latest"
+# Pin the installer code; it resolves the current Loxone release at install time.
+LOXONE_INSTALL_SCRIPT_URL = (
+    "https://raw.githubusercontent.com/SonZions/loxone-install/"
+    "2db81fd4dc66aa32019b664e683e549951b9b446/install-loxone.ps1"
+)
 DISALLOWED_WINDOWS_USERNAMES = {
     "admin",
     "administrator",
@@ -22,6 +28,21 @@ DISALLOWED_WINDOWS_USERNAMES = {
 LOG_FILE = "current.log"
 PUBLIC_IP_CACHE_TTL_SECONDS = 15
 _public_ip_cache = {"value": None, "timestamp": 0.0}
+
+
+def get_loxone_install_settings():
+    version = os.getenv("LOXONE_VERSION", DEFAULT_LOXONE_VERSION).strip().lower()
+    version = version or DEFAULT_LOXONE_VERSION
+    if version != "latest" and not re.fullmatch(r"[0-9]{8}", version):
+        raise ValueError("LOXONE_VERSION muss 'latest' oder eine achtstellige Buildnummer sein.")
+    log(f"ℹ️  Loxone Config Version: {version}")
+    return {
+        "fileUris": [LOXONE_INSTALL_SCRIPT_URL],
+        "commandToExecute": (
+            "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass "
+            f"-File install-loxone.ps1 -Version {version}"
+        ),
+    }
 
 
 def get_vm_username():
@@ -107,6 +128,9 @@ def create_vm():
         return
 
     try:
+        # Konfiguration pruefen, bevor Azure-Ressourcen angelegt werden.
+        settings = json.dumps(get_loxone_install_settings())
+
         # Resource Group erstellen (idempotent)
         run_command(f"az group create --name {RESOURCE_GROUP} --location germanywestcentral")
 
@@ -159,32 +183,6 @@ def create_vm():
             --os-disk-delete-option Delete \
             --license-type Windows_Server""")
             
-        loxone_version = os.getenv("LOXONE_VERSION", DEFAULT_LOXONE_VERSION).strip()
-        if not loxone_version:
-            loxone_version = DEFAULT_LOXONE_VERSION
-        log(f"ℹ️  Loxone Config Version: {loxone_version}")
-
-        ps_script = (
-            f"$ErrorActionPreference = 'Stop'; "
-            f"$version = '{loxone_version}'; "
-            f"$zipUrl = 'https://updatefiles.loxone.com/LoxConfig/LoxoneConfigSetup_' + $version + '.zip'; "
-            f"$zipPath = 'C:\\LoxoneConfig.zip'; "
-            f"$extractPath = 'C:\\LoxoneInstall'; "
-            f"Write-Host ('Lade Loxone Config v' + $version + ' von ' + $zipUrl); "
-            f"Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath; "
-            f"Write-Host 'Entpacke ZIP...'; "
-            f"Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force; "
-            f"$installer = Get-ChildItem -Path $extractPath -Filter 'LoxoneConfigSetup*.exe' -Recurse | Select-Object -First 1; "
-            f"if (-not $installer) {{ throw 'Installer EXE nicht gefunden in ZIP' }}; "
-            f"Write-Host ('Starte Installation von ' + $installer.FullName); "
-            f"Start-Process -FilePath $installer.FullName -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait; "
-            f"Write-Host 'Loxone Config installiert.'"
-        )
-
-        settings = json.dumps({
-            "commandToExecute": f"powershell -ExecutionPolicy Unrestricted -Command \"{ps_script}\""
-        })
-
         run_command([
             "az", "vm", "extension", "set",
             "--resource-group", RESOURCE_GROUP,
