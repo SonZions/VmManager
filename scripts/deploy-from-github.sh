@@ -70,9 +70,21 @@ install -o root -g root -m 0644 \
 
 systemctl daemon-reload
 systemctl restart "$service"
-sleep 3
 systemctl is-active --quiet "$service"
-curl --fail --silent --show-error --max-time 15 http://127.0.0.1:8000/status >/dev/null
+
+ready=0
+for _ in {1..15}; do
+  if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8000/status >/dev/null; then
+    ready=1
+    break
+  fi
+  sleep 1
+done
+
+if [[ "$ready" -ne 1 ]]; then
+  echo "VM Manager did not become ready on port 8000 within 15 seconds." >&2
+  exit 1
+fi
 
 trap - EXIT
 echo "VM Manager deployment completed: $expected_sha"
