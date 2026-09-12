@@ -13,14 +13,19 @@ templates = Jinja2Templates(directory="app/templates")
 async def index(request: Request):
     public_ip = vm_manager.get_public_ip()
     return templates.TemplateResponse(
-        "index.html",
-        {
-            "request": request,
+        request=request,
+        name="index.html",
+        context={
             "public_ip": public_ip,
             "vm_username": vm_manager.get_vm_username(),
             "vm_password": os.getenv("AZURE_VM_PASSWORD"),
         },
     )
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 
 @app.get("/logs", response_class=PlainTextResponse)
