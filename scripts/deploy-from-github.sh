@@ -21,29 +21,32 @@ flock -n 9 || {
 }
 
 test -d "$repo/.git"
+git_as_loxberry() {
+  runuser -u loxberry -- git -C "$repo" "$@"
+}
 test -f "$repo/vm_webapp/app/requirements.txt"
 test -f /etc/vmmanager/vmmanager.env
 
-git -C "$repo" fetch --quiet origin main
-remote_sha="$(git -C "$repo" rev-parse origin/main)"
+git_as_loxberry fetch --quiet origin main
+remote_sha="$(git_as_loxberry rev-parse origin/main)"
 if [[ "$expected_sha" != "$remote_sha" ]]; then
   echo "Refusing deployment: expected $expected_sha, origin/main is $remote_sha" >&2
   exit 1
 fi
 
-previous_sha="$(git -C "$repo" rev-parse HEAD)"
+previous_sha="$(git_as_loxberry rev-parse HEAD)"
 rollback() {
   status=$?
   if [[ $status -ne 0 ]]; then
     echo "Deployment failed; restoring source revision $previous_sha." >&2
-    git -C "$repo" reset --hard --quiet "$previous_sha" || true
+    git_as_loxberry reset --hard --quiet "$previous_sha" || true
   fi
   exit $status
 }
 trap rollback EXIT
 
 echo "Deploying VM Manager commit $expected_sha"
-git -C "$repo" reset --hard --quiet "$expected_sha"
+git_as_loxberry reset --hard --quiet "$expected_sha"
 
 install -d -o vmmanager -g vmmanager -m 0750 "$runtime" "$runtime/home" "$app"
 rsync -a --delete \
