@@ -74,7 +74,7 @@ systemctl is-active --quiet "$service"
 
 ready=0
 for _ in {1..15}; do
-  if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8000/status >/dev/null; then
+  if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8000/healthz >/dev/null; then
     ready=1
     break
   fi
@@ -85,6 +85,10 @@ if [[ "$ready" -ne 1 ]]; then
   echo "VM Manager did not become ready on port 8000 within 15 seconds." >&2
   exit 1
 fi
+
+# The readiness endpoint only proves that Uvicorn listens. Verify that the
+# rendered web UI works as well, including its Jinja template.
+curl --fail --silent --show-error --max-time 15 http://127.0.0.1:8000/ >/dev/null
 
 trap - EXIT
 echo "VM Manager deployment completed: $expected_sha"
