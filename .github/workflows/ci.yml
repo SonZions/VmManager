@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   test:
-    name: Python tests
-    runs-on: ubuntu-latest
+    name: Python tests (Raspberry)
+    runs-on: [self-hosted, Linux, ARM64, loxberry]
     timeout-minutes: 10
 
     steps:
