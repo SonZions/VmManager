@@ -1,0 +1,29 @@
+[Unit]
+Description=VM Manager Web UI
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vmmanager
+Group=vmmanager
+WorkingDirectory=/srv/raspi-data/vmmanager/app
+EnvironmentFile=/etc/vmmanager/vmmanager.env
+Environment=HOME=/srv/raspi-data/vmmanager/home
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/raspi-data/vmmanager/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/srv/raspi-data/vmmanager
+
+[Install]
+WantedBy=multi-user.target
