@@ -1,0 +1,2 @@
+# GitHub Actions may only invoke the fixed, root-owned VM Manager deploy bridge.
+github-runner ALL=(root) NOPASSWD: /usr/local/sbin/vmmanager-deploy *
