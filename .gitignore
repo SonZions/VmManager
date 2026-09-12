@@ -127,6 +127,10 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Service-local runtime files
+vm_webapp/my_venv/
+vm_webapp/current.log
+
 # Environments
 .env
 .venv
