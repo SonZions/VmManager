@@ -85,6 +85,16 @@ rollback() {
     git_as_loxberry reset --hard --quiet "$previous_sha" || rollback_failed=1
     if "$service_was_active"; then
       systemctl start "$service" || rollback_failed=1
+      restored_ready=0
+      for _ in {1..15}; do
+        if curl --fail --silent --max-time 2 http://127.0.0.1:8000/healthz >/dev/null &&
+           curl --fail --silent --max-time 15 http://127.0.0.1:8000/ >/dev/null; then
+          restored_ready=1
+          break
+        fi
+        sleep 1
+      done
+      [[ $restored_ready -eq 1 ]] || rollback_failed=1
     fi
     [[ $rollback_failed -eq 0 ]] || echo "ERROR: VM Manager rollback is incomplete; inspect the retained snapshot before further deployment." >&2
     echo "Rollback snapshot retained at $rollback_dir for inspection." >&2
