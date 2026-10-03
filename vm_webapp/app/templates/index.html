@@ -1,87 +1,65 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Azure VM Manager</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding-top: 30px; }
-        button { font-size: 1.2em; margin: 10px; padding: 10px 20px; }
-        pre { text-align: left; background: #eee; padding: 20px; overflow-x: auto; max-width: 80%; margin: auto; white-space: pre-wrap; }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101828">
+  <title>VM Manager · Loxone Config</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17243a;background:#f4f6fa;font-synthesis:none}
+    *{box-sizing:border-box}body{margin:0}button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.5}
+    .shell{max-width:1180px;margin:auto;padding:30px 28px 70px}.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:44px}
+    .brand{display:flex;align-items:center;gap:13px;text-decoration:none;color:#18253a;font-weight:750;letter-spacing:-.035em;font-size:20px}.mark{height:38px;width:38px;border-radius:12px;background:#335ad7;color:white;display:grid;place-items:center;box-shadow:0 7px 18px #335ad733;font-size:19px}
+    .environment{color:#64748b;font-size:13px;border:1px solid #dbe2ec;background:#fff;padding:8px 12px;border-radius:999px}.environment::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#38b77c;margin-right:8px}
+    .intro{margin-bottom:27px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;color:#536aca;font-weight:750;font-size:11px;margin:0 0 10px}.intro h1{font-size:clamp(31px,4vw,46px);letter-spacing:-.055em;line-height:1.06;margin:0 0 12px;color:#111d32}.intro p:last-child{color:#627187;font-size:15px;margin:0;max-width:620px;line-height:1.55}
+    .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:20px}.card{background:white;border:1px solid #e1e6ee;border-radius:18px;box-shadow:0 8px 30px #1f35500a}.status-card{padding:30px;min-height:310px}.card-head{display:flex;align-items:start;justify-content:space-between;gap:14px}.section-label{color:#68778b;font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;margin:0 0 12px}.status-title{display:flex;align-items:center;gap:11px;font-size:27px;font-weight:750;letter-spacing:-.04em;margin:0}.status-dot{width:11px;height:11px;border-radius:50%;background:#a7b2c2;box-shadow:0 0 0 5px #eef1f5}.status-dot.running{background:#22ae77;box-shadow:0 0 0 5px #e8f8f0}.status-dot.busy{background:#f1aa3c;box-shadow:0 0 0 5px #fff4dc}.status-note{color:#67778b;font-size:14px;line-height:1.5;margin:13px 0 26px}.ip-box{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 17px;background:#f5f7fb;border:1px solid #e9edf3;border-radius:12px;margin-bottom:20px}.ip-box small{display:block;color:#738196;font-size:11px;margin-bottom:4px}.ip-box strong{font-size:18px;letter-spacing:.005em;font-variant-numeric:tabular-nums}.muted{color:#97a2b2}.button{border:0;border-radius:10px;padding:11px 17px;font-size:13px;font-weight:700;transition:transform .15s,background .15s}.button:hover:not(:disabled){transform:translateY(-1px)}.primary{background:#335ad7;color:#fff;box-shadow:0 5px 14px #335ad72c}.primary:hover{background:#264cc3}.danger{background:#fff0ee;color:#bc443d}.danger:hover{background:#ffe6e2}.ghost{background:#edf1f7;color:#42516b}.actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.hint{color:#77869a;font-size:12px;margin:0}
+    .detail-card{padding:27px}.detail-card h2,.log-card h2,.resources-card h2{margin:0;font-size:17px;letter-spacing:-.025em}.detail-card p{color:#68778b;font-size:13px;line-height:1.5;margin:8px 0 23px}.field-label{display:block;color:#35435a;font-size:12px;font-weight:700;margin-bottom:8px}.field-row{display:flex;gap:8px}input{width:100%;min-width:0;border:1px solid #d8e0eb;border-radius:10px;padding:11px 12px;color:#24344c;background:#fff;outline:0}input:focus{border-color:#6e8af0;box-shadow:0 0 0 3px #e8edff}.field-help{color:#8a98a9;font-size:11px;line-height:1.5;margin:8px 0 20px}.detail-list{border-top:1px solid #edf0f5;padding-top:15px;display:grid;gap:12px}.detail-list div{display:flex;justify-content:space-between;gap:12px;font-size:12px}.detail-list span{color:#8290a3}.detail-list strong{font-weight:650;text-align:right;word-break:break-word}
+    .lower{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(290px,1fr);gap:20px;margin-top:20px}.log-card,.resources-card{padding:23px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}.text-button{background:none;border:0;padding:4px;color:#5269be;font-size:12px;font-weight:700}.text-button:hover{text-decoration:underline}.log-box{background:#101c2e;color:#bed0e8;border-radius:12px;padding:18px;min-height:190px;max-height:300px;overflow:auto;font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}.resource-list{list-style:none;padding:0;margin:0;display:grid;gap:8px;max-height:300px;overflow:auto}.resource-list li{border:1px solid #edf0f5;border-radius:10px;padding:11px 12px}.resource-list strong{display:block;font-size:12px;overflow-wrap:anywhere}.resource-list span{font-size:11px;color:#8290a3}.empty{color:#8a98a9;font-size:13px;margin:14px 0}.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#18263c;color:#fff;padding:12px 18px;border-radius:10px;box-shadow:0 10px 35px #1a253d44;font-size:13px;z-index:5;max-width:calc(100vw - 30px)}.hidden{display:none!important}
+    @media(max-width:760px){.shell{padding:21px 16px 44px}.topbar{margin-bottom:35px}.environment{font-size:11px}.grid,.lower{grid-template-columns:1fr}.status-card{min-height:0}.status-card,.detail-card{padding:23px}.lower{margin-top:16px;gap:16px}.field-row{flex-wrap:wrap}.field-row .button{width:100%}}
+  </style>
 </head>
 <body>
-    <h1>Azure VM Manager</h1>
-
-    <div id="vm-status">
-    {% if public_ip %}
-        <p style="color:green;">&#x2705; VM l&auml;uft: {{ public_ip }}</p>
-        <p>Verbinde: <strong>mstsc /v:{{ public_ip }}</strong></p>
-    {% else %}
-        <p style="color:red;">&#x26D4; VM ist gestoppt</p>
-    {% endif %}
-    </div>
-
-    {% if vm_username and vm_password %}
-        <p><strong>VM Credentials:</strong> {{ vm_username }} / {{ vm_password }}</p>
-    {% elif vm_username %}
-        <p><strong>VM Username:</strong> {{ vm_username }} (Passwort wird &uuml;ber AZURE_VM_PASSWORD gesetzt)</p>
-    {% endif %}
-
-         <h3>Aktive Ressourcen</h3>
- <div id="resources">Lade...</div>
-
- <script>
- fetch("/resources")
-     .then(response => response.json())
-     .then(data => {
-         const list = data.map(r => `<li><b>${r.name}</b> (${r.type}) – ${r.location}</li>`).join("");
-         document.getElementById("resources").innerHTML = `<ul>${list}</ul>`;
-     })
-     .catch(err => {
-         document.getElementById("resources").innerHTML = "Fehler beim Laden der Ressourcen.";
-     });
- </script>
-
-    <form action="/start" method="post">
-        <button type="submit">&#x1F535; VM starten</button>
-    </form>
-
-    <form action="/stop" method="post">
-        <button type="submit">&#x1F534; VM stoppen</button>
-    </form>
-
-    <form action="/clear-log" method="post">
-        <button type="submit">&#x1F9F9; Log l&ouml;schen</button>
-    </form>
-
-    <h2>Logs</h2>
-    <pre id="logbox">Lade...</pre>
-
-    <script>
-        function reloadLogs() {
-            fetch("/logs")
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById("logbox").innerText = data;
-                });
-        }
-        setInterval(reloadLogs, 1500);
-        reloadLogs();
-
-        function reloadStatus() {
-            fetch("/status")
-                .then(response => response.json())
-                .then(data => {
-                    const el = document.getElementById("vm-status");
-                    if (data.public_ip) {
-                        el.innerHTML = '<p style="color:green;">&#x2705; VM l&auml;uft: ' + data.public_ip + '</p>'
-                            + '<p>Verbinde: <strong>mstsc /v:' + data.public_ip + '</strong></p>';
-                    } else {
-                        el.innerHTML = '<p style="color:red;">&#x26D4; VM ist gestoppt</p>';
-                    }
-                });
-        }
-        setInterval(reloadStatus, 5000);
-    </script>
+  <main class="shell">
+    <header class="topbar"><a class="brand" href="/"><span class="mark" aria-hidden="true">▣</span><span>VM Manager</span></a><span class="environment">Privates Netzwerk</span></header>
+    <div class="intro"><p class="eyebrow">Azure · Loxone Config</p><h1>Deine Windows-VM<br>auf einen Blick.</h1><p>Starten, verbinden und bei Bedarf wieder vollständig entfernen. Alle wichtigen Informationen stehen direkt hier.</p></div>
+    <section class="grid" aria-label="VM-Übersicht">
+      <div class="card status-card">
+        <div class="card-head"><div><p class="section-label">Aktueller Zustand</p><h2 class="status-title"><span id="status-dot" class="status-dot"></span><span id="status-label">Status wird geladen …</span></h2></div></div>
+        <p class="status-note" id="status-note">Azure wird abgefragt. Das kann einen Moment dauern.</p>
+        <div class="ip-box"><div><small>Öffentliche VM-Adresse</small><strong id="public-ip" class="muted">Noch nicht verfügbar</strong></div><button class="button ghost hidden" id="copy-button" type="button">IP kopieren</button></div>
+        <div class="actions"><button id="start-button" class="button primary hidden" type="button">VM erstellen</button><button id="stop-button" class="button danger hidden" type="button">VM und Netzwerk löschen</button><span id="action-hint" class="hint"></span></div>
+      </div>
+      <aside class="card detail-card"><h2>Verbindung & Zugriff</h2><p>RDP wird beim Erstellen nur für diese öffentliche IPv4-Adresse freigegeben.</p>
+        <label class="field-label" for="rdp-ip">MyFRITZ!-Name oder öffentliche IP</label><div class="field-row"><input id="rdp-ip" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="z. B. deinname.myfritz.net" value="{{ rdp_source_host }}"><button class="button ghost" id="detect-ip" type="button">Prüfen</button></div>
+        <div class="field-help"><span id="resolved-source">Adresse wird geprüft …</span><br>Der DNS-Name wird beim Erstellen in eine IPv4-Adresse aufgelöst. Ändert sich deine Heim-IP später, aktualisiere die RDP-Freigabe hier.</div>
+        <button id="sync-rdp" class="button ghost hidden" type="button" style="margin-bottom:18px;width:100%">RDP-Freigabe aktualisieren</button><div class="detail-list"><div><span>VM</span><strong>{{ vm_name }}</strong></div><div><span>Benutzer</span><strong>{{ vm_username }}</strong></div><div><span>Ressourcengruppe</span><strong>{{ resource_group }}</strong></div><div><span>Verbindung</span><strong id="rdp-command">RDP nach dem Erstellen verfügbar</strong></div><div><span>Passwort</span><strong><button id="show-password" class="text-button" type="button">Anzeigen</button><span id="password-value" class="hidden"></span></strong></div></div>
+      </aside>
+    </section>
+    <section class="lower" aria-label="Weitere Informationen"><div class="card log-card"><div class="panel-head"><h2>Aktivitätsprotokoll</h2><button id="clear-log" class="text-button" type="button">Leeren</button></div><pre id="log-box" class="log-box" aria-live="polite">Protokoll wird geladen …</pre></div><div class="card resources-card"><div class="panel-head"><h2>Azure-Ressourcen</h2><button id="refresh-resources" class="text-button" type="button">Aktualisieren</button></div><ul id="resource-list" class="resource-list"><li class="empty">Ressourcen werden geladen …</li></ul></div></section>
+  </main>
+  <div id="toast" class="toast hidden" role="status"></div>
+<script>
+const $ = id => document.getElementById(id);
+let busy = false;
+let lastLog = '';
+let toastTimer;
+function toast(message){const el=$('toast');el.textContent=message;el.classList.remove('hidden');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.add('hidden'),4500)}
+async function api(url, options){const response=await fetch(url,{cache:'no-store',...options});const type=response.headers.get('content-type')||'';const data=type.includes('application/json')?await response.json():await response.text();if(!response.ok)throw new Error(data.error||`Anfrage fehlgeschlagen (${response.status})`);return data}
+function setState(data){busy=!!data.operation;const running=!!data.public_ip;const label=busy?(data.operation==='create'?'VM wird erstellt …':data.operation==='sync'?'RDP-Freigabe wird aktualisiert …':'Ressourcen werden gelöscht …'):(running?'VM ist bereit':'Keine VM aktiv');$('status-label').textContent=label;$('status-dot').className='status-dot '+(busy?'busy':running?'running':'');$('status-note').textContent=busy?'Die Aktion läuft im Hintergrund. Fortschritt siehst du unten im Protokoll.':running?'Die VM ist erreichbar. Kopiere die Adresse und verbinde dich per Remotedesktop.':'Erstelle eine VM, wenn du Loxone Config benötigst. Danach kannst du alle Ressourcen wieder löschen.';$('public-ip').textContent=data.public_ip||'Noch nicht verfügbar';$('public-ip').classList.toggle('muted',!running);$('rdp-command').textContent=running?'mstsc /v:'+data.public_ip:'RDP nach dem Erstellen verfügbar';$('copy-button').classList.toggle('hidden',!running);$('start-button').classList.toggle('hidden',running||busy);$('stop-button').classList.toggle('hidden',!running||busy);$('sync-rdp').classList.toggle('hidden',!running||busy);$('clear-log').disabled=busy;$('action-hint').textContent=busy?'Bitte warten …':'';if(data.error)toast(data.error)}
+async function loadStatus(){try{setState(await api('/status'))}catch(error){$('status-label').textContent='Status nicht verfügbar';$('status-note').textContent=error.message;$('status-dot').className='status-dot';$('start-button').classList.add('hidden');$('stop-button').classList.add('hidden')}}
+async function loadLogs(){try{const value=await api('/logs');if(value!==lastLog){const box=$('log-box');const pinned=box.scrollTop+box.clientHeight>=box.scrollHeight-30;box.textContent=value||'Noch keine Aktivitäten.';lastLog=value;if(pinned)box.scrollTop=box.scrollHeight}}catch(error){$('log-box').textContent=error.message}}
+async function loadResources(){const list=$('resource-list');try{const data=await api('/resources');list.replaceChildren();if(!data.length){const li=document.createElement('li');li.className='empty';li.textContent='Keine Ressourcen vorhanden.';list.append(li);return}for(const resource of data){const li=document.createElement('li');const name=document.createElement('strong');const details=document.createElement('span');name.textContent=resource.name||'Unbenannt';details.textContent=[resource.type,resource.location].filter(Boolean).join(' · ');li.append(name,details);list.append(li)}}catch(error){list.replaceChildren();const li=document.createElement('li');li.className='empty';li.textContent=error.message;list.append(li)}}
+async function act(url, body){try{const options={method:'POST'};if(body){options.headers={'Content-Type':'application/json'};options.body=JSON.stringify(body)}await api(url,options);toast('Aktion gestartet.');await Promise.all([loadStatus(),loadLogs()]);setTimeout(loadResources,3000)}catch(error){toast(error.message)}}
+$('start-button').addEventListener('click',()=>{const source=$('rdp-ip').value.trim();if(!source){toast('Bitte DNS-Namen oder öffentliche IPv4-Adresse eingeben.');$('rdp-ip').focus();return}act('/start',{rdp_source_ip:source})});
+$('stop-button').addEventListener('click',()=>{if(confirm('VM und zugehörige Netzwerkressourcen wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.'))act('/stop')});
+$('clear-log').addEventListener('click',async()=>{try{await api('/clear-log',{method:'POST'});lastLog='';loadLogs()}catch(error){toast(error.message)}});
+$('copy-button').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('public-ip').textContent);toast('IP-Adresse kopiert.')}catch(error){toast('Kopieren nicht möglich.')}});
+async function resolveSource(){const source=$('rdp-ip').value.trim();if(!source){$('resolved-source').textContent='Bitte einen Namen oder eine IP eingeben.';return}try{const data=await api('/rdp-source?source='+encodeURIComponent(source));$('resolved-source').textContent='Aktuell aufgelöst: '+data.address}catch(error){$('resolved-source').textContent=error.message}}
+$('detect-ip').addEventListener('click',resolveSource);$('rdp-ip').addEventListener('change',resolveSource);
+$('sync-rdp').addEventListener('click',()=>act('/sync-rdp',{rdp_source:$('rdp-ip').value.trim()}));
+$('show-password').addEventListener('click',async()=>{try{const data=await api('/credentials');$('password-value').textContent=data.password||'Nicht konfiguriert';$('password-value').classList.remove('hidden');$('show-password').classList.add('hidden')}catch(error){toast(error.message)}});
+$('refresh-resources').addEventListener('click',loadResources);
+loadStatus();loadLogs();loadResources();resolveSource();setInterval(loadStatus,8000);setInterval(loadLogs,2500);setInterval(loadResources,30000);
+</script>
 </body>
 </html>

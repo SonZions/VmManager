@@ -1,0 +1,9 @@
+[Unit]
+Description=Relay VM Manager HTTP to VPS
+
+[Socket]
+ListenStream=8000
+NoDelay=true
+
+[Install]
+WantedBy=sockets.target
