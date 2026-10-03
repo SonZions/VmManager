@@ -63,6 +63,8 @@ class LoxoneInstallTests(unittest.TestCase):
         self.assertEqual(extension[:4], ["az", "vm", "extension", "set"])
         settings = json.loads(extension[extension.index("--settings") + 1])
         self.assertEqual(settings, vm_manager.get_loxone_install_settings())
+        public_ip = next(cmd for cmd in commands if isinstance(cmd, str) and "az network public-ip create" in cmd)
+        self.assertIn("--sku Standard --allocation-method Static", public_ip)
 
     def test_myfritz_name_resolves_to_public_ipv4(self):
         with patch("vm_manager.socket.getaddrinfo", return_value=[(None, None, None, None, ("37.138.57.49", 0))]):
