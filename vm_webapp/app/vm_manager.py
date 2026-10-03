@@ -1,6 +1,9 @@
 import json
+import ipaddress
 import os
 import re
+import shlex
+import socket
 import subprocess
 import time
 
@@ -25,7 +28,7 @@ DISALLOWED_WINDOWS_USERNAMES = {
     "root",
     "guest",
 }
-LOG_FILE = "current.log"
+LOG_FILE = os.getenv("VM_MANAGER_LOG_FILE", "current.log")
 PUBLIC_IP_CACHE_TTL_SECONDS = 15
 _public_ip_cache = {"value": None, "timestamp": 0.0}
 
@@ -65,27 +68,56 @@ def log(line):
     print(line)
 
 def run_command(command, json_output=False):
-    log(f"⚙️  Befehl: {command}")
+    display = command if isinstance(command, str) else shlex.join(command)
+    password = os.getenv("AZURE_VM_PASSWORD")
+    if password:
+        display = display.replace(password, "[REDACTED]")
+    log(f"⚙️  Befehl: {display}")
     try:
         result = subprocess.run(command, shell=isinstance(command, str), check=True, capture_output=True, text=True)
-        log(f"✅ Erfolg:\n{result.stdout.strip()}")
+        if not json_output:
+            log(f"✅ Erfolg:\n{result.stdout.strip()}")
         output = result.stdout.strip()
         if json_output:
             return json.loads(output or "[]")
         return output
     except subprocess.CalledProcessError as e:
-        log(f"❌ Fehler:\n{e.stderr.strip()}")
-        raise RuntimeError(e.stderr.strip())
+        error = e.stderr.strip()
+        if password:
+            error = error.replace(password, "[REDACTED]")
+        log(f"❌ Fehler:\n{error}")
+        raise RuntimeError(error)
 
-def get_my_ip():
-    for url in ["https://api.ipify.org", "https://ifconfig.me", "https://ipv4.icanhazip.com"]:
+def get_rdp_source_ip(candidate=None):
+    """The VPS public IP is not the browser's public IP."""
+    value = (candidate or os.getenv("RDP_SOURCE_HOST") or "").strip().lower().rstrip(".")
+    if not value:
+        raise ValueError("Öffentliche IPv4-Adresse oder DNS-Name für RDP fehlt.")
+    try:
+        address = ipaddress.IPv4Address(value)
+    except ipaddress.AddressValueError:
+        if not re.fullmatch(r"(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}", value):
+            raise ValueError("RDP-Quelle muss eine gültige IPv4-Adresse oder ein DNS-Name sein.")
         try:
-            ip = run_command(f"curl -4 -s --max-time 5 {url}").strip()
-            if ip:
-                return ip
-        except RuntimeError:
-            continue
-    raise RuntimeError("Konnte keine öffentliche IP ermitteln.")
+            addresses = socket.getaddrinfo(value, None, family=socket.AF_INET, type=socket.SOCK_STREAM)
+        except socket.gaierror as exc:
+            raise ValueError(f"DNS-Name {value} konnte nicht aufgelöst werden.") from exc
+        if not addresses:
+            raise ValueError(f"DNS-Name {value} hat keine IPv4-Adresse.")
+        address = ipaddress.IPv4Address(addresses[0][4][0])
+    if not address.is_global:
+        raise ValueError("Für RDP ist eine öffentliche IPv4-Adresse nötig.")
+    return str(address)
+
+
+def update_rdp_source(candidate):
+    address = get_rdp_source_ip(candidate)
+    run_command([
+        "az", "network", "nsg", "rule", "update",
+        "--resource-group", RESOURCE_GROUP, "--nsg-name", NSG_NAME,
+        "--name", "allow-rdp", "--source-address-prefixes", f"{address}/32",
+    ])
+    log(f"✅ RDP-Zugriff auf {address}/32 aktualisiert.")
 
 def get_public_ip():
     now = time.time()
@@ -107,7 +139,7 @@ def get_public_ip():
             _public_ip_cache.update({"value": None, "timestamp": now})
             return None
         log(f"❌ Fehler beim Abrufen der VM-IP:\n{e}")
-        return None
+        raise
 
 
 def list_resources():
@@ -120,7 +152,7 @@ def list_resources():
     return run_command(cmd, json_output=True)
 
 
-def create_vm():
+def create_vm(rdp_source_ip=None):
     open(LOG_FILE, "w").close()  # Leere Logdatei
     password = os.getenv("AZURE_VM_PASSWORD")
     if not password:
@@ -130,6 +162,7 @@ def create_vm():
     try:
         # Konfiguration pruefen, bevor Azure-Ressourcen angelegt werden.
         settings = json.dumps(get_loxone_install_settings())
+        current_ip = get_rdp_source_ip(rdp_source_ip)
 
         # Resource Group erstellen (idempotent)
         run_command(f"az group create --name {RESOURCE_GROUP} --location germanywestcentral")
@@ -142,7 +175,6 @@ def create_vm():
             --subnet-name {SUBNET_NAME} \
             --subnet-prefix 10.0.0.0/24""")
 
-        current_ip = get_my_ip()
         source_prefix = f"{current_ip}/32"
 
         # NSG + Regel
@@ -160,7 +192,10 @@ def create_vm():
             --destination-address-prefix '*'""")
 
         # Public IP
-        run_command(f"az network public-ip create --resource-group {RESOURCE_GROUP} --name {IP_NAME} --sku Basic")
+        run_command(
+            f"az network public-ip create --resource-group {RESOURCE_GROUP} "
+            f"--name {IP_NAME} --sku Standard --allocation-method Static"
+        )
 
         # NIC
         run_command(f"""az network nic create \
@@ -172,16 +207,14 @@ def create_vm():
             --public-ip-address {IP_NAME}""")
 
         # VM
-        run_command(f"""az vm create \
-            --resource-group {RESOURCE_GROUP} \
-            --name {VM_NAME} \
-            --nics {NIC_NAME} \
-            --image MicrosoftWindowsServer:WindowsServer:2025-datacenter:latest \
-            --admin-username {get_vm_username()} \
-            --admin-password {password} \
-            --size Standard_B2s \
-            --os-disk-delete-option Delete \
-            --license-type Windows_Server""")
+        run_command([
+            "az", "vm", "create", "--resource-group", RESOURCE_GROUP,
+            "--name", VM_NAME, "--nics", NIC_NAME,
+            "--image", "MicrosoftWindowsServer:WindowsServer:2025-datacenter:latest",
+            "--admin-username", get_vm_username(), "--admin-password", password,
+            "--size", "Standard_B2s", "--os-disk-delete-option", "Delete",
+            "--license-type", "Windows_Server",
+        ])
             
         run_command([
             "az", "vm", "extension", "set",
@@ -197,6 +230,7 @@ def create_vm():
         log("✅ VM erfolgreich erstellt.")
     except Exception as e:
         log(f"❌ Erstellung abgebrochen: {str(e)}")
+        raise
 
 def delete_vm():
     open(LOG_FILE, "w").close()

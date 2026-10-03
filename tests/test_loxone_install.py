@@ -11,7 +11,7 @@ import vm_manager
 
 class LoxoneInstallTests(unittest.TestCase):
     def setUp(self):
-        self.env = patch.dict(os.environ, {"AZURE_VM_PASSWORD": "test-password"}, clear=True)
+        self.env = patch.dict(os.environ, {"AZURE_VM_PASSWORD": "test-password", "RDP_SOURCE_HOST": "8.8.8.8"}, clear=True)
         self.env.start()
         self.addCleanup(self.env.stop)
         self.log = patch.object(vm_manager, "log").start()
@@ -47,22 +47,41 @@ class LoxoneInstallTests(unittest.TestCase):
     def test_invalid_version_does_not_create_azure_resources(self):
         os.environ["LOXONE_VERSION"] = "invalid"
         with patch("builtins.open"), patch.object(vm_manager, "run_command") as run:
-            vm_manager.create_vm()
+            with self.assertRaises(ValueError):
+                vm_manager.create_vm()
         run.assert_not_called()
         self.assertIn("Erstellung abgebrochen", self.log.call_args.args[0])
 
     def test_create_vm_passes_installer_settings_to_extension(self):
         with (
             patch("builtins.open"),
-            patch.object(vm_manager, "get_my_ip", return_value="192.0.2.10"),
             patch.object(vm_manager, "run_command") as run,
         ):
             vm_manager.create_vm()
         commands = [call.args[0] for call in run.call_args_list]
-        extension = next(cmd for cmd in commands if isinstance(cmd, list))
+        extension = next(cmd for cmd in commands if isinstance(cmd, list) and cmd[:4] == ["az", "vm", "extension", "set"])
         self.assertEqual(extension[:4], ["az", "vm", "extension", "set"])
         settings = json.loads(extension[extension.index("--settings") + 1])
         self.assertEqual(settings, vm_manager.get_loxone_install_settings())
+        public_ip = next(cmd for cmd in commands if isinstance(cmd, str) and "az network public-ip create" in cmd)
+        self.assertIn("--sku Standard --allocation-method Static", public_ip)
+
+    def test_myfritz_name_resolves_to_public_ipv4(self):
+        with patch("vm_manager.socket.getaddrinfo", return_value=[(None, None, None, None, ("37.138.57.49", 0))]):
+            self.assertEqual(vm_manager.get_rdp_source_ip("2xfp9mf8ug3fqsvy.myfritz.net"), "37.138.57.49")
+
+    def test_rdp_source_rejects_private_and_malformed_values(self):
+        for value in ("192.168.178.1", "127.0.0.1", "bad host", "example.com;whoami"):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                vm_manager.get_rdp_source_ip(value)
+
+    def test_azure_command_does_not_log_vm_password(self):
+        with patch("vm_manager.subprocess.run") as run:
+            run.return_value.stdout = "ok"
+            vm_manager.run_command(["az", "vm", "create", "--admin-password", "test-password"])
+        logged = "\n".join(call.args[0] for call in self.log.call_args_list)
+        self.assertNotIn("test-password", logged)
+        self.assertIn("[REDACTED]", logged)
 
 
 if __name__ == "__main__":
