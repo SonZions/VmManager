@@ -1,0 +1,30 @@
+name: Deploy VMManager to VPS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vmmanager-vps-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m compileall -q vm_webapp tests
+      - run: python -m unittest discover -s tests -v
+
+  deploy:
+    needs: check
+    runs-on: [self-hosted, Linux, X64, my-vps, vmmanager]
+    timeout-minutes: 30
+    steps:
+      - name: Deploy approved main commit on VPS
+        run: sudo -n /usr/local/sbin/vmmanager-vps-deploy "$GITHUB_SHA"
