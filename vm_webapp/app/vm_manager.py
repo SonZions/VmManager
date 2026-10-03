@@ -192,7 +192,10 @@ def create_vm(rdp_source_ip=None):
             --destination-address-prefix '*'""")
 
         # Public IP
-        run_command(f"az network public-ip create --resource-group {RESOURCE_GROUP} --name {IP_NAME} --sku Basic")
+        run_command(
+            f"az network public-ip create --resource-group {RESOURCE_GROUP} "
+            f"--name {IP_NAME} --sku Standard --allocation-method Static"
+        )
 
         # NIC
         run_command(f"""az network nic create \
