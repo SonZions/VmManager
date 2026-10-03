@@ -13,7 +13,7 @@ Azure-NSGs akzeptieren keine DNS-Namen als Quelle. Für automatische IP-Wechsel 
 
 ## VPS-Betrieb
 
-Der Dienst läuft als Docker-Container auf `my-vps` und bindet ausschließlich an `192.168.178.204:8000` (WireGuard). Der Pi kann Port 8000 über `systemd-socket-proxyd` an den VPS weitergeben, damit die bisherige Adresse erhalten bleibt. Der öffentliche VPS-Port bleibt geschlossen.
+Der Dienst läuft als Docker-Container auf `my-vps` und ist direkt unter [http://192.168.178.204:8000](http://192.168.178.204:8000) erreichbar. Er bindet ausschließlich an die WireGuard-Adresse; der öffentliche VPS-Port bleibt geschlossen. Der alte Pi-Dienst ist deaktiviert.
 
 Vor dem Start müssen diese Dateien auf dem VPS vorhanden sein:
 
@@ -36,7 +36,7 @@ docker run -d --name vmmanager-vps --restart unless-stopped \
   vmmanager-vps:latest
 ```
 
-`docker-compose.yml` enthält dieselbe Laufzeitkonfiguration für Hosts mit Docker Compose. Die frühere Pi-Deployment-Workflow wurde entfernt; Deployments auf den VPS erfolgen erst nach einem expliziten Rollout.
+`docker-compose.yml` enthält dieselbe Laufzeitkonfiguration für Hosts mit Docker Compose. Der frühere Pi-Deployment-Workflow wurde entfernt. Weitere Deployments auf den VPS erfolgen manuell.
 
 ## Entwicklung und Tests
 
